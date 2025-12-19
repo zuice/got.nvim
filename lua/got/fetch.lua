@@ -1,4 +1,6 @@
-local function fetch(repo, plugin_path)
+local M = {}
+
+function M.repo(repo, plugin_path)
 	local name = repo:gsub(".*/", "")
 	print("🚚 [got] fetching " .. name .. "...")
 
@@ -12,6 +14,8 @@ local function fetch(repo, plugin_path)
 	vim.fn.system({ "mkdir", "-p", plugin_path })
 	vim.fn.system({ "mv", internal, plugin_path })
 	vim.fn.system({ "rm", "-rf", tmp_zip, tmp_dir })
+
+	print("🚚 [got] finished operation for " .. name .. ".")
 end
 
-return fetch
+return M
