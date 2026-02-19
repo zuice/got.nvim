@@ -103,6 +103,18 @@ return {
 - No UI window (uses notifications)
 - Core features only: install, update, clean, deps
 
+## Testing
+
+Test in an isolated environment without affecting your setup:
+
+```bash
+git clone https://github.com/zuice/got.nvim.git
+cd got.nvim/test
+./run.sh
+```
+
+This runs neovim with isolated config/data directories.
+
 ## License
 
 MIT
