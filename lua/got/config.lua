@@ -45,13 +45,11 @@ function M.import_spec(spec)
     
     if type(spec) == "string" then
         local ok, mod = pcall(require, spec)
-        if ok then
-            if mod then
-                specs[#specs + 1] = mod
-            end
-            local mod_path = vim.fn.stdpath("config") .. "/lua/" .. spec:gsub("%.", "/")
-            M.import_dir(mod_path, specs)
+        if ok and mod then
+            specs[#specs + 1] = mod
         end
+        local mod_path = vim.fn.stdpath("config") .. "/lua/" .. spec:gsub("%.", "/")
+        M.import_dir(mod_path, specs)
     elseif type(spec) == "table" then
         for _, s in ipairs(spec) do
             if type(s) == "table" and s.import then
