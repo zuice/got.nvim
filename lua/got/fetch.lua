@@ -16,13 +16,7 @@ end
 
 function M.curl_get(url, headers)
     headers = headers or {}
-    local header_args = {}
-    for _, h in ipairs(headers) do
-        header_args[#header_args + 1] = "-H"
-        header_args[#header_args + 1] = h
-    end
-    
-    local cmd = { "curl", "-sL" }
+    local cmd = { "curl", "-sL", "-H", "Accept: application/vnd.github+json" }
     for _, h in ipairs(headers) do
         cmd[#cmd + 1] = "-H"
         cmd[#cmd + 1] = h
@@ -36,18 +30,48 @@ function M.curl_get(url, headers)
     return result, nil
 end
 
-function M.get_commits(owner, repo, branch)
-    local url = M.api_url(owner, repo, string.format("/commits?sha=%s&per_page=1", branch))
-    Util.debug("GET " .. url)
-    
-    local resp, err = M.curl_get(url, { "Accept: application/vnd.github+json" })
+function M.get_repo_info(owner, repo)
+    local url = M.api_url(owner, repo)
+    local resp, err = M.curl_get(url)
     if err then
         return nil, err
     end
     
     local ok, data = pcall(vim.json.decode, resp)
-    if not ok or type(data) ~= "table" or #data == 0 then
+    if not ok or type(data) ~= "table" then
+        return nil, "failed to parse repo info"
+    end
+    
+    return data, nil
+end
+
+function M.get_default_branch(owner, repo)
+    local info, err = M.get_repo_info(owner, repo)
+    if err then
+        return nil, err
+    end
+    return info.default_branch, nil
+end
+
+function M.get_commits(owner, repo, branch)
+    local url = M.api_url(owner, repo, string.format("/commits?sha=%s&per_page=1", branch))
+    Util.debug("GET " .. url)
+    
+    local resp, err = M.curl_get(url)
+    if err then
+        return nil, err
+    end
+    
+    local ok, data = pcall(vim.json.decode, resp)
+    if not ok or type(data) ~= "table" then
+        if type(data) == "table" and data.message then
+            return nil, data.message
+        end
         return nil, "failed to parse commits response"
+    end
+    
+    if #data == 0 then
+        return nil, "no commits found"
     end
     
     return data[1].sha, nil
@@ -57,7 +81,7 @@ function M.get_tags(owner, repo)
     local url = M.api_url(owner, repo, "/tags?per_page=100")
     Util.debug("GET " .. url)
     
-    local resp, err = M.curl_get(url, { "Accept: application/vnd.github+json" })
+    local resp, err = M.curl_get(url)
     if err then
         return nil, err
     end
@@ -88,7 +112,20 @@ function M.resolve_ref(owner, repo, branch, tag, commit)
         return nil, "tag not found: " .. tag
     end
     
-    return M.get_commits(owner, repo, branch)
+    local sha, err = M.get_commits(owner, repo, branch)
+    if sha then
+        return sha, nil
+    end
+    
+    if branch == "main" then
+        Util.debug("main branch failed, trying master")
+        return M.get_commits(owner, repo, "master")
+    elseif branch == "master" then
+        Util.debug("master branch failed, trying main")
+        return M.get_commits(owner, repo, "main")
+    end
+    
+    return nil, err
 end
 
 function M.download(owner, repo, ref, dest_dir)
