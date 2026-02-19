@@ -8,6 +8,12 @@ If you're behind a corporate firewall that blocks POST requests to GitHub's API,
 
 ## Installation
 
+### One-liner
+
+```bash
+curl -sSL https://raw.githubusercontent.com/zuice/got.nvim/main/install.sh | bash
+```
+
 ### Bootstrap (add to init.lua)
 
 ```lua
@@ -20,6 +26,8 @@ if not vim.loop.fs_stat(got_path) then
     })
 end
 vim.opt.rtp:prepend(got_path)
+
+require("got").setup("plugins")
 ```
 
 ## Usage
